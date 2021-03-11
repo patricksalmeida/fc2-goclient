@@ -48,18 +48,38 @@ func main() {
 
 		if err != nil {
 			http.Error(writer, "Exchange token failed", http.StatusInternalServerError)
+			return
+		}
+
+		idToken, ok := token.Extra("id_token").(string)
+
+		if !ok {
+			http.Error(writer, "Failed to generate id token", http.StatusInternalServerError)
+			return
+		}
+
+		userInfo, err := provider.UserInfo(ctx, oauth2.StaticTokenSource(token))
+
+		if !ok {
+			http.Error(writer, "Failed to get user infos", http.StatusInternalServerError)
+			return
 		}
 
 		res := struct {
 			AccessToken *oauth2.Token
+			IdToken     string
+			UserInfo    *oidc.UserInfo
 		}{
 			token,
+			idToken,
+			userInfo,
 		}
 
 		data, err := json.Marshal(res)
 
 		if err != nil {
 			http.Error(writer, "Json marshal error", http.StatusInternalServerError)
+			return
 		}
 
 		writer.Write(data)
